@@ -14,7 +14,7 @@ VERBOSITY_COUNT_TO_LEVEL: Final = MappingProxyType({
     3: "INFO",
     4: "DEBUG",
 })
-DEBUG: Final = VERBOSITY_COUNT_TO_LEVEL[2]  # prod config
+DEBUG: Final = VERBOSITY_COUNT_TO_LEVEL[4]  # prod config
 log_config = {
     "version": 1,
     "root": {
@@ -45,4 +45,4 @@ log_config = {
 }
 
 config.dictConfig(log_config)
-MAX_WORKERS = 8  # os.cpu_count() // 2
+MAX_WORKERS = os.cpu_count() // 2 - 1
