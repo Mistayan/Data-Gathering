@@ -6,6 +6,7 @@ from typing import Final
 import brotli
 
 __version__ = (0, 1, 3)
+NUM_OF_THE_DAY = 2
 del brotli.__version__
 VERBOSITY_COUNT_TO_LEVEL: Final = MappingProxyType({
     0: "CRITICAL",
@@ -14,7 +15,7 @@ VERBOSITY_COUNT_TO_LEVEL: Final = MappingProxyType({
     3: "INFO",
     4: "DEBUG",
 })
-DEBUG: Final = VERBOSITY_COUNT_TO_LEVEL[4]  # prod config
+DEBUG: Final = VERBOSITY_COUNT_TO_LEVEL[NUM_OF_THE_DAY]  # prod config
 log_config = {
     "version": 1,
     "root": {
@@ -45,4 +46,4 @@ log_config = {
 }
 
 config.dictConfig(log_config)
-MAX_WORKERS = os.cpu_count() // 2 - 1
+MAX_WORKERS = NUM_OF_THE_DAY
