@@ -14,7 +14,7 @@ VERBOSITY_COUNT_TO_LEVEL: Final = MappingProxyType({
     3: "INFO",
     4: "DEBUG",
 })
-DEBUG: Final = VERBOSITY_COUNT_TO_LEVEL[4]  # dev config
+DEBUG: Final = VERBOSITY_COUNT_TO_LEVEL[2]  # prod config
 log_config = {
     "version": 1,
     "root": {
