@@ -1,6 +1,6 @@
 aiohttp~=3.8.1
 yarl==1.8.1  # Simple url formatting
 Brotli~=1.0.9
-selenium~=4.3.0  # Since original website uses scripts and such mechanismes, I chose to use selenium
+selenium==4.4.0  # Since original website uses scripts and such mechanismes, I chose to use selenium
 webdriver-manager>=3.8.3
 urllib3~=1.26.11
