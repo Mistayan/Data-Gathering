@@ -105,6 +105,8 @@ if __name__ == '__main__':
     try:
         with open("test_datas", "r") as fp:  # this file is a copy from browser's network analyser
             id_list = fp.readlines()
+            if len(id_list) != 10:
+                raise FileNotFoundError
     except FileNotFoundError:
         exit(print("Did you clone the repository ? It includes test_datas"))
     # Attempt to gather every website displayed
