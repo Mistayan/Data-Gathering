@@ -102,6 +102,11 @@ def extract_website(_id):
 # ______________________________________________________________________________________________ #
 if __name__ == '__main__':
     # Attempt to gather json sent when loading the map
+    print("Data-Gathering  Copyright (C) 2022  Mistayan
+    This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
+    This is free software, and you are welcome to redistribute it
+    under certain conditions; type `show c' for details.")
+          
     try:
         with open("test_datas", "r") as fp:  # this file is a copy from browser's network analyser
             id_list = fp.readlines()
