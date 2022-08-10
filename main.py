@@ -8,10 +8,10 @@ Creation-date: 08/03/22
 import json
 import re
 import logging
-import html
+import time
 from multiprocessing import Pool
-
 import yarl
+
 from selenium import webdriver
 from selenium.common import TimeoutException
 from selenium.webdriver import Proxy
@@ -26,8 +26,15 @@ from webdriver_manager.chrome import ChromeDriverManager
 import conf
 from my_async import AsyncRequest, get_content
 log = logging.getLogger(__name__)
-mail_pattern = re.compile(r"[\w\d+._-]+\(?@\)?[\w\d+._-]+\.[a-zA-Z]+")
-contact_pattern = re.compile(r"\/[\w-]+?contact+[\w\d+_/-]+")
+mail_pattern = re.compile(r"[\w\d+._-]+"    # any alphanum + specific mail authorized
+                          r"\(*@\)*"        # arobase + potential spoofing materials
+                          r"[\w\d+._-]+"    # domain name + specifics
+                          r"\.[a-zA-Z]+")   # domain extension (alpha-only).
+contact_pattern = re.compile(r"(?:[\/\w-]+)"        # optionnal prefix
+                             r"contact"             # must-be
+                             r"(?:[\w\d+_/-]+)")    # optional suffix
+trash_pattern = re.compile(r" ?[&?\\<(){]+.+")  #
+
 service = Service(ChromeDriverManager().install())
 options = Options()
 options.headless = True
@@ -60,11 +67,11 @@ def extract_mail(string):
     if not string:
         return
     string = str(string)
-    if re.match(r" ?[&?\\<(){]+.+", html.unescape(string)):  # mail from mailto: {} sometimes returns extra
-        string = re.sub(r" ?[&?\\<(){]+.+", "", html.unescape(string))  # remove potential junk after email
+    if trash_pattern.search(string):            # extra mail spoofing predictions
+        string = trash_pattern.sub("", string)  # remove potential spoofing
     # some mails match urls img@xyz.png
     try:
-        string = mail_pattern.match(html.unescape(string).lower())[0]
+        string = mail_pattern.match(string.lower())[0]
         if string and string[-3:] not in ("png", "gif", "svg"):
             return string
     except IndexError:
@@ -73,22 +80,25 @@ def extract_mail(string):
         return
 
 
+def find_mails(raw_page):
+    findings = mail_pattern.findall(raw_page)
+    return [found if found else None for found in findings] if findings else []
+
+
 def get_website_mails(url):
     ret = []
     website = AsyncRequest(get_content, url)
     if website.get():
-        mails = mail_pattern.findall(website.get())
-        [ret.append(mail) if mail else None for mail in mails] if mails else None
+        ret += find_mails(website.get())
         contact = contact_pattern.search(website.get())
-        log.debug(contact)
+        log.debug(f"contact found: {contact}")
         if contact and "css" not in contact[0]:
             # task.name is the requested website's url, at which we append /*contact*/
             contact = website.name[0] + (contact[0][1:] if website.name[0][-1] == '/' else contact[0])
             contact_page = str(AsyncRequest(get_content, contact).get())
             if contact_page:
                 try:
-                    mails = mail_pattern.findall(contact_page)
-                    [ret.append(mail) if mail else None for mail in mails] if mails else None
+                    ret += find_mails(contact_page)
                 except ValueError:  # No email found via regex. Maybe it is encoded (may return unwanted values)
                     pass
     log.info(f"{url} => extracted: {ret}")
@@ -101,15 +111,17 @@ def get_website_mails(url):
 def extract_website(_id):
     log.debug(f"extract: {_id}")
     try:
-        with webdriver.Chrome(options=options, service=service) as driver:
-            driver.get(f"https://www.touslesgolfs.com/?post_type=golf&p={_id}")
+        target = f"https://www.touslesgolfs.com/?post_type=golf&p={_id}"
+        with webdriver.Chrome(options=options, service=service) as browser:
+            browser.get(target)
             try:
-                url = WebDriverWait(driver, 1).until(EC.presence_of_element_located((By.CLASS_NAME, "url_block")))
+                time.sleep(0.5)
+                url = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.CLASS_NAME, "url_block")))
                 if url:
                     log.info(url.text)
                     return url.text
             except TimeoutException:
-                log.warning(f"couldn't load https://www.touslesgolfs.com/?post_type=golf&p={_id}")
+                log.warning(f"couldn't load {target}")
                 return
     except (ConnectionRefusedError, MaxRetryError):
         return
@@ -117,7 +129,6 @@ def extract_website(_id):
 
 # ______________________________________________________________________________________________ #
 if __name__ == '__main__':
-    # Attempt to gather json sent when loading the map
     print("""Data-Gathering  Copyright (C) 2022  Mistayan
     This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
     This is free software, and you are welcome to redistribute it
@@ -128,11 +139,16 @@ if __name__ == '__main__':
         with open("test_datas", "r") as fp:  # this file is a copy from browser's network analyser
             id_list = fp.readlines()
             if len(id_list) != 10:
-                raise FileNotFoundError
+                raise ValueError
     except FileNotFoundError:
         exit(print("Did you clone the repository ? It includes test_datas"))
+    except ValueError:
+        exit(print("have you tried to alter datas... ?"))
     # Attempt to gather every website displayed
-    print("searching datas... (this can take a moment)")
+    print("searching datas... (this may take a moment)")
+    # with open("websites", "r") as fp:
+    #     websites: list = json.load(fp)
+    # print(websites)
     with Pool(conf.MAX_WORKERS) as pool:
         log.info("gathering websites from id_list")
         websites: list = pool.map_async(extract_website, id_list).get()
