@@ -12,5 +12,14 @@ Le programme étant un exemple, certaines fonctionnalités ont volontairement é
       Listing complet des adresses d'un site
       Multi-processing limité (accélère considérablement la vitesse)
 
+____
+first :
+> python -m pip install -r requirements.txt
 
-./main.py
+then :
+> python main.py
+
+finally, open :
+>>./websites to see which websites are being scanned
+> 
+>>./findings to see program's results
